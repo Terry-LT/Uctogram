@@ -1,3 +1,5 @@
+from io import BytesIO
+
 from openpyxl import load_workbook
 
 INCOME_SHEETS = [
@@ -27,6 +29,24 @@ FIRST_ROW = 5
 LAST_ROW = 40
 INCOME_TX_LAST_ROW = 40
 EXPENSE_TX_LAST_ROW = 103  # <-- Added this for your 103 limit
+
+
+def validate_upload(contents: bytes | bytearray) -> None:
+    try:
+        workbook = load_workbook(BytesIO(contents))
+    except Exception as exc:
+        raise ValueError("The file could not be opened as an Excel workbook.") from exc
+
+    try:
+        worksheet_names = {sheet.title for sheet in workbook.worksheets}
+        missing = [
+            name for name in INCOME_SHEETS
+            if name != "Cil" and name not in worksheet_names
+        ]
+        if missing:
+            raise ValueError(f"Missing month worksheets: {', '.join(missing)}.")
+    finally:
+        workbook.close()
 
 def _detect_currency(number_format: str) -> str:
     if not number_format:

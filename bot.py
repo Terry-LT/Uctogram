@@ -2,11 +2,12 @@ import html
 import os
 from datetime import datetime, time
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.constants import FileSizeLimit
 from telegram.ext import (
     Application, CommandHandler, CallbackQueryHandler, MessageHandler,
     ConversationHandler, filters, ContextTypes, ApplicationHandlerStop, TypeHandler
 )
-from telegram.error import BadRequest
+from telegram.error import BadRequest, TelegramError
 
 import config
 import excel_ops
@@ -18,6 +19,7 @@ from datetime import datetime
 CHOOSE_MONTH, ENTER_NAME, ENTER_AMOUNT = range(3)       # for add category
 T_MONTH, T_CATEGORY, T_AMOUNT, T_DATE = range(10, 14)   # for income tx
 TE_MONTH, TE_CATEGORY, TE_AMOUNT, TE_DATE = range(20, 24) # for expense tx
+UPLOAD_FILE = 30
 # reuse the same three state names — the conversations are independent,
 # but each ConversationHandler tracks its own state per user, so this is fine.
 
@@ -112,6 +114,7 @@ def build_app(backend):
             
             "<b>🛠 Data & Settings:</b>\n"
             "/backup - Send the Excel file to this chat\n"
+            "/upload - Replace the finance workbook with an Excel file\n"
             "/cancel - Cancel the current action\n"
             "/help - Show this help menu"
         )
@@ -689,6 +692,57 @@ def build_app(backend):
             
             # Stop the bot from processing any further handlers
             raise ApplicationHandlerStop
+    # ---- Workbook upload ----
+
+    async def upload_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+        await update.message.reply_text(
+            f"Send an .xlsx document to replace {config.EXCEL_FILE} in data/. "
+            "Use /backup first if you want a copy, or /cancel to stop."
+        )
+        return UPLOAD_FILE
+
+    async def upload_document(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+        message = update.message
+        document = message.document
+        if not (document.file_name or "").lower().endswith(".xlsx"):
+            await message.reply_text("Send an .xlsx document, or use /cancel.")
+            return UPLOAD_FILE
+        if document.file_size and document.file_size > FileSizeLimit.FILESIZE_DOWNLOAD:
+            await message.reply_text("Send a workbook of 20 MB or less, or use /cancel.")
+            return UPLOAD_FILE
+
+        try:
+            telegram_file = await document.get_file()
+            contents = await telegram_file.download_as_bytearray()
+        except TelegramError:
+            await message.reply_text("Could not download the file. Send it again or use /cancel.")
+            return UPLOAD_FILE
+
+        try:
+            excel_ops.validate_upload(contents)
+            backend.replace_workbook(contents)
+        except ValueError as exc:
+            await message.reply_text(f"{exc} Send a compatible workbook or use /cancel.")
+            return UPLOAD_FILE
+        except OSError:
+            await message.reply_text(
+                "Could not replace the workbook. If it is open in Excel, close it and try again."
+            )
+            return UPLOAD_FILE
+
+        await message.reply_text(f"Uploaded {config.EXCEL_FILE}. The bot is now using it.")
+        return ConversationHandler.END
+
+    async def cancel_upload(update: Update, ctx: ContextTypes.DEFAULT_TYPE) -> int:
+        await update.message.reply_text("Upload cancelled.")
+        return ConversationHandler.END
+
+    upload_conv = ConversationHandler(
+        entry_points=[CommandHandler("upload", upload_cmd)],
+        states={UPLOAD_FILE: [MessageHandler(filters.Document.ALL, upload_document)]},
+        fallbacks=[CommandHandler("cancel", cancel_upload)],
+    )
+
     # ---- Backups ----
 
     async def backup_cmd(update: Update, ctx: ContextTypes.DEFAULT_TYPE):
@@ -725,6 +779,7 @@ def build_app(backend):
     #app.add_handler(CommandHandler("myid", get_my_id))
     # 1. Conversations go first! They need to intercept messages 
     # before the generic command handlers do.
+    app.add_handler(upload_conv)
     app.add_handler(addincome_conv)
     app.add_handler(addexpense_conv)
     app.add_handler(addtraninc_conv)

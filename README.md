@@ -45,7 +45,8 @@ I created this project because I was tired of paying monthly subscriptions for c
 | `/record_income`, `/record_expense` | Select a month and an existing category, then enter an amount and choose today's date or enter a date manually. |
 | `/view_income`, `/view_expense` | View the transactions for a selected month. |
 | `/backup` | Send a copy of the workbook to the current chat. |
-| `/cancel` | Exit the active category or transaction flow. |
+| `/upload` | Send an `.xlsx` document to replace the workbook configured by `EXCEL_FILE` in `data/`. The replacement must have all twelve English month tabs and use the existing workbook layout. |
+| `/cancel` | Exit the active upload, category, or transaction flow. |
 | `/help` | Show the command list. |
 
 Amounts accept a decimal comma or point. Enter manual transaction dates as `DD.MM.YYYY`. The bot sends a weekly workbook backup to the owner on Sundays at 18:00 UTC when the job queue is available.

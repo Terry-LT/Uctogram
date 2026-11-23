@@ -1,4 +1,5 @@
 from pathlib import Path
+from tempfile import TemporaryDirectory
 from openpyxl import load_workbook
 
 import config
@@ -17,6 +18,13 @@ class LocalBackend:
 
     def save(self, wb) -> None:
         wb.save(self.path)
+
+    def replace_workbook(self, contents: bytes | bytearray) -> None:
+        self.path.parent.mkdir(parents=True, exist_ok=True)
+        with TemporaryDirectory(dir=self.path.parent) as temp_dir:
+            staged_file = Path(temp_dir) / self.path.name
+            staged_file.write_bytes(contents)
+            staged_file.replace(self.path)
 
     def list_files(self) -> list[str]:        # still handy for debugging
         return [p.name for p in config.DATA_DIR.glob("*.xlsx")]
