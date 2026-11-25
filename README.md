@@ -19,7 +19,7 @@ I created this project because I was tired of paying monthly subscriptions for c
 
    Copy the example only when creating a new `.env`.
 
-3. Put a compatible `.xlsx` workbook in `data/`. If you use the included `IncomeTemplateDATASET.xlsx` as a starting point, copy it into `data/` and rename its Czech month tabs to their English equivalents so they match the bot's month menu. Rename `Template` to `Cil` if you want to use that menu option. Keep the workbook's existing column layout.
+3. Copy the included `IncomeTemplateDATASET.xlsx` into `data/`. Its English month tabs match the bot's month menu. Rename `Template` to `Cil` in your copy if you want to use that menu option. Keep the workbook's existing column layout.
 4. Fill in `.env` and keep it private.
 
    | Variable | Value |

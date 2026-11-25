@@ -31,7 +31,7 @@ The same command without `local` selects the default backend. There is no config
 
 ## Workbook layout
 
-The month keyboard uses exact worksheet names from `excel_ops.INCOME_SHEETS`. The root `IncomeTemplateDATASET.xlsx` has Czech month names. The local `data/IncomeTemplateDATASET_EN.xlsx` has the expected English month names (September through August). Both samples have a `Template` sheet, while the keyboard also offers `Cil`. Check sheet names when choosing a workbook or changing the keyboard.
+The month keyboard uses exact worksheet names from `excel_ops.INCOME_SHEETS`. The included `IncomeTemplateDATASET.xlsx` has the expected English month names (September through August) and a `Template` sheet. Rename `Template` to `Cil` in the working copy to use the optional `Cil` menu entry.
 
 | Block | Range | Column order |
 | --- | --- | --- |
